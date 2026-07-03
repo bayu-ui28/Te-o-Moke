@@ -6,6 +6,12 @@
     <title>Te'o Pung Moke - Minuman Lokal</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Gaya tambahan untuk mematikan scroll saat modal aktif */
+        .modal-open {
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
 
@@ -36,14 +42,26 @@
         <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"></div>
     </main>
 
-    <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
-        <div class="relative max-w-3xl w-full flex flex-col items-center">
-            <button onclick="closeImageModal()" class="absolute -top-12 right-0 text-white hover:text-amber-500 text-3xl cursor-pointer focus:outline-none">
-                <i class="fas fa-times"></i> Tutup
+    <div id="image-modal" class="fixed inset-0 bg-black/90 z-50 hidden flex flex-col items-center justify-center p-4">
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 text-white hover:text-amber-500 text-3xl cursor-pointer focus:outline-none z-60">
+            <i class="fas fa-times"></i> Tutup
+        </button>
+
+        <div class="relative w-full max-w-4xl flex items-center justify-center">
+            <button onclick="changeImage(-1)" class="absolute left-0 text-white hover:text-amber-500 text-5xl cursor-pointer focus:outline-none z-10 px-4">
+                <i class="fas fa-chevron-left"></i>
             </button>
-            <img id="modal-img" src="" alt="Preview Gambar" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain">
-            <p id="modal-caption" class="text-white text-lg font-semibold mt-4 text-center"></p>
+
+            <div class="w-full flex items-center justify-center px-12">
+                <img id="modal-img" src="" alt="Preview Gambar" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain transition-opacity duration-300">
+            </div>
+
+            <button onclick="changeImage(1)" class="absolute right-0 text-white hover:text-amber-500 text-5xl cursor-pointer focus:outline-none z-10 px-4">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
+        
+        <p id="modal-caption" class="text-white text-lg font-semibold mt-4 text-center px-4"></p>
     </div>
 
     <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
@@ -80,13 +98,14 @@
         ];
 
         let cart = [];
+        let currentImageIndex = 0; // Menyimpan indeks gambar yang sedang ditampilkan di modal
 
         // 1. Me-render / menampilkan produk ke halaman web
         function displayProducts() {
             const container = document.getElementById('product-container');
-            container.innerHTML = products.map(product => `
+            container.innerHTML = products.map((product, index) => `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
-                    <div class="relative overflow-hidden cursor-pointer group" onclick="openImageModal('${product.img}', '${product.name}')">
+                    <div class="relative overflow-hidden cursor-pointer group" onclick="openImageModal(${index})">
                         <img src="${product.img}" alt="${product.name}" class="w-full h-48 object-cover transition duration-300 group-hover:scale-105">
                         <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                             <span class="bg-white/90 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow">
@@ -106,30 +125,70 @@
             `).join('');
         }
 
-        // FUNGSI BARU: Buka Modal Gambar Besar
-        function openImageModal(imgUrl, productName) {
-            const modal = document.getElementById('image-modal');
+        // FUNGSI BARU: Update tampilan gambar dan keterangan di dalam modal
+        function updateModalImage() {
             const modalImg = document.getElementById('modal-img');
             const modalCaption = document.getElementById('modal-caption');
-            
-            modalImg.src = imgUrl;
-            modalCaption.innerText = productName;
-            modal.classList.remove('hidden');
+            const product = products[currentImageIndex];
+
+            // Tambahkan efek fade
+            modalImg.style.opacity = '0';
+            setTimeout(() => {
+                modalImg.src = product.img;
+                modalCaption.innerText = product.name;
+                modalImg.style.opacity = '1';
+            }, 150);
         }
 
-        // FUNGSI BARU: Tutup Modal Gambar Besar
+        // FUNGSI BARU: Buka Modal Galeri
+        function openImageModal(index) {
+            currentImageIndex = index; // Atur indeks gambar awal
+            updateModalImage();
+            
+            const modal = document.getElementById('image-modal');
+            modal.classList.remove('hidden');
+            document.body.classList.add('modal-open'); // Matikan scroll halaman utama
+        }
+
+        // FUNGSI BARU: Slide Kiri/Kanan
+        function changeImage(direction) {
+            // Logika slide berputar (dari akhir kembali ke awal)
+            currentImageIndex += direction;
+            if (currentImageIndex < 0) {
+                currentImageIndex = products.length - 1;
+            } else if (currentImageIndex >= products.length) {
+                currentImageIndex = 0;
+            }
+            updateModalImage();
+        }
+
+        // FUNGSI BARU: Tutup Modal Galeri
         function closeImageModal() {
             const modal = document.getElementById('image-modal');
             modal.classList.add('hidden');
+            document.body.classList.remove('modal-open'); // Hidupkan scroll halaman utama
         }
 
-        // 2. Fungsi Buka/Tutup Sidebar Keranjang
+        // FUNGSI BARU: Navigasi menggunakan keyboard
+        document.addEventListener('keydown', function(event) {
+            const modal = document.getElementById('image-modal');
+            if (!modal.classList.contains('hidden')) {
+                if (event.key === 'ArrowLeft') {
+                    changeImage(-1);
+                } else if (event.key === 'ArrowRight') {
+                    changeImage(1);
+                } else if (event.key === 'Escape') {
+                    closeImageModal();
+                }
+            }
+        });
+
+        // FUNGSI LAMA (Keranjang & WhatsApp)
         function toggleCart() {
             const sidebar = document.getElementById('cart-sidebar');
             sidebar.classList.toggle('translate-x-full');
         }
 
-        // 3. Fungsi Tambah Barang ke Keranjang
         function addToCart(id) {
             const product = products.find(p => p.id === id);
             const exist = cart.find(item => item.id === id);
@@ -142,7 +201,6 @@
             updateCartUI();
         }
 
-        // 4. Mengubah Jumlah Item di Keranjang
         function changeQuantity(id, amount) {
             const item = cart.find(item => item.id === id);
             if (!item) return;
@@ -154,7 +212,6 @@
             updateCartUI();
         }
 
-        // 5. Update Tampilan Keranjang
         function updateCartUI() {
             const cartCount = document.getElementById('cart-count');
             const cartItemsContainer = document.getElementById('cart-items');
@@ -193,7 +250,6 @@
             cartItemsContainer.innerHTML = emptyMsg.outerHTML + itemsHTML;
         }
 
-        // 6. INTEGRASI WHATSAPP FORM CHECKOUT
         function checkoutWhatsApp() {
             if (cart.length === 0) {
                 alert("Keranjang belanja Anda masih kosong!");
