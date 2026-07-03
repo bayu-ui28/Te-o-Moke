@@ -26,15 +26,25 @@
     </nav>
 
     <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16 px-4 text-center">
-        <h1 class="text-3xl md:text-5xl font-extrabold mb-4">Katalog Minumal Lokal</h1>
+        <h1 class="text-3xl md:text-5xl font-extrabold mb-4">Katalog Minuman Lokal</h1>
         <p class="text-blue-100 max-w-2xl mx-auto">Pilih produk yang Anda butuhkan, masukkan ke keranjang, dan kirim pesanan langsung via WhatsApp.</p>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-12">
         <h2 class="text-2xl font-bold mb-8 border-b-2 border-amber-500 pb-2 inline-block">Produk Kami</h2>
-        
+         
         <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"></div>
     </main>
+
+    <div id="image-modal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="relative max-w-3xl w-full flex flex-col items-center">
+            <button onclick="closeImageModal()" class="absolute -top-12 right-0 text-white hover:text-amber-500 text-3xl cursor-pointer focus:outline-none">
+                <i class="fas fa-times"></i> Tutup
+            </button>
+            <img id="modal-img" src="" alt="Preview Gambar" class="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain">
+            <p id="modal-caption" class="text-white text-lg font-semibold mt-4 text-center"></p>
+        </div>
+    </div>
 
     <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
         <div class="p-4 border-b flex justify-between items-center bg-gray-50">
@@ -59,14 +69,14 @@
     </div>
 
     <script>
-        // NOMOR WHATSAPP ANDA (Ganti dengan nomor toko Anda, gunakan kode negara tanpa tanda '+')
+        // NOMOR WHATSAPP ANDA
         const NOMOR_WHATSAPP = "6285966220301"; 
 
-        // DATA KATALOG PRODUK (Anda bisa tambah/kurangi produk di sini secara dinamis)
+        // DATA KATALOG PRODUK
         const products = [
             { id: 1, name: "Moke Nomor 1 (Kepala)", price: 80000, category: "Minuman", img: "moke kepala.png" },
-            { id: 2, name: "Moke Merah", price: 35000, category: "Minuman", img: "moke putih.png" },
-            { id: 3, name: "Moke Putih", price: 35000, category: "Minuman", img: "moke merah.png" },
+            { id: 2, name: "Moke Merah", price: 35000, category: "Minuman", img: "moke merah.png" },
+            { id: 3, name: "Moke Putih", price: 35000, category: "Minuman", img: "moke putih.png" },
         ];
 
         let cart = [];
@@ -76,7 +86,14 @@
             const container = document.getElementById('product-container');
             container.innerHTML = products.map(product => `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
-                    <img src="${product.img}" alt="${product.name}" class="w-full h-48 object-cover">
+                    <div class="relative overflow-hidden cursor-pointer group" onclick="openImageModal('${product.img}', '${product.name}')">
+                        <img src="${product.img}" alt="${product.name}" class="w-full h-48 object-cover transition duration-300 group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <span class="bg-white/90 text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow">
+                                <i class="fas fa-search-plus mr-1"></i> Lihat Gambar
+                            </span>
+                        </div>
+                    </div>
                     <div class="p-4">
                         <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium">${product.category}</span>
                         <h4 class="font-bold text-gray-900 mt-2 truncate">${product.name}</h4>
@@ -87,6 +104,23 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        // FUNGSI BARU: Buka Modal Gambar Besar
+        function openImageModal(imgUrl, productName) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('modal-img');
+            const modalCaption = document.getElementById('modal-caption');
+            
+            modalImg.src = imgUrl;
+            modalCaption.innerText = productName;
+            modal.classList.remove('hidden');
+        }
+
+        // FUNGSI BARU: Tutup Modal Gambar Besar
+        function closeImageModal() {
+            const modal = document.getElementById('image-modal');
+            modal.classList.add('hidden');
         }
 
         // 2. Fungsi Buka/Tutup Sidebar Keranjang
@@ -120,33 +154,28 @@
             updateCartUI();
         }
 
-        // 5. Update Tampilan Keranjang (Total harga & Jumlah ikon)
+        // 5. Update Tampilan Keranjang
         function updateCartUI() {
             const cartCount = document.getElementById('cart-count');
             const cartItemsContainer = document.getElementById('cart-items');
             const cartTotal = document.getElementById('cart-total');
             const emptyMsg = document.getElementById('empty-cart-msg');
 
-            // Total Jumlah Item
             const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
             cartCount.innerText = totalItems;
 
-            // Total Harga
             const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             cartTotal.innerText = `Rp ${totalPrice.toLocaleString('id-ID')}`;
 
             if (cart.length === 0) {
                 emptyMsg.style.display = 'block';
-                // Hapus item lama jika ada
                 const elements = cartItemsContainer.querySelectorAll('.cart-item');
                 elements.forEach(el => el.remove());
                 return;
             }
 
-            emptyMsg.style.style = 'none';
             emptyMsg.style.display = 'none';
 
-            // Render isi item di dalam keranjang
             const itemsHTML = cart.map(item => `
                 <div class="cart-item flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <div class="flex-1 min-w-0 pr-2">
@@ -171,9 +200,8 @@
                 return;
             }
 
-            // Menyusun format teks pesan WhatsApp
             let pesan = `*Halo Te'o Pung Moke, Saya ingin memesan:* \n\n`;
-            
+             
             cart.forEach((item, index) => {
                 let subtotal = item.price * item.quantity;
                 pesan += `${index + 1}. *${item.name}* \n`;
@@ -185,14 +213,11 @@
             pesan += `*Total Keseluruhan:* Rp ${totalSemua.toLocaleString('id-ID')}\n\n`;
             pesan += `Mohon info untuk ketersediaan stok dan total ongkos kirimnya. Terima kasih.`;
 
-            // Encode string teks agar aman dibaca oleh URL browser
             const urlWhatsApp = `https://api.whatsapp.com/send?phone=${NOMOR_WHATSAPP}&text=${encodeURIComponent(pesan)}`;
-            
-            // Buka aplikasi WhatsApp di tab baru
+             
             window.open(urlWhatsApp, '_blank');
         }
 
-        // Jalankan fungsi tampilkan produk saat web pertama kali dimuat
         window.onload = displayProducts;
     </script>
 </body>
