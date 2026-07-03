@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Te'o Pung Moke - Minuman Lokal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="text-2xl font-bold text-blue-600">Te'o <span class="text-amber-500">Moke</span></span>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <button onclick="toggleCart()" class="relative text-gray-600 hover:text-blue-600 p-2 focus:outline-none cursor-pointer">
+                        <i class="fas fa-shopping-cart text-2xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16 px-4 text-center">
+        <h1 class="text-3xl md:text-5xl font-extrabold mb-4">Katalog Minumal Lokal</h1>
+        <p class="text-blue-100 max-w-2xl mx-auto">Pilih produk yang Anda butuhkan, masukkan ke keranjang, dan kirim pesanan langsung via WhatsApp.</p>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-12">
+        <h2 class="text-2xl font-bold mb-8 border-b-2 border-amber-500 pb-2 inline-block">Produk Kami</h2>
+        
+        <div id="product-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6"></div>
+    </main>
+
+    <div id="cart-sidebar" class="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h3 class="text-lg font-bold text-gray-900"><i class="fas fa-shopping-basket mr-2 text-blue-600"></i>Keranjang Belanja</h3>
+            <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500 text-xl cursor-pointer"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <p id="empty-cart-msg" class="text-gray-500 text-center py-8">Keranjang Anda masih kosong.</p>
+        </div>
+
+        <div class="p-4 border-t bg-gray-50">
+            <div class="flex justify-between font-bold text-lg mb-4">
+                <span>Total:</span>
+                <span id="cart-total" class="text-blue-600">Rp 0</span>
+            </div>
+            <button onclick="checkoutWhatsApp()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center space-x-2 transition shadow cursor-pointer">
+                <i class="fab fa-whatsapp text-xl"></i>
+                <span>Kirim Pesanan ke WhatsApp</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // NOMOR WHATSAPP ANDA (Ganti dengan nomor toko Anda, gunakan kode negara tanpa tanda '+')
+        const NOMOR_WHATSAPP = "6285966220301"; 
+
+        // DATA KATALOG PRODUK (Anda bisa tambah/kurangi produk di sini secara dinamis)
+        const products = [
+            { id: 1, name: "Moke Nomor 1 (Kepala)", price: 80000, category: "Minuman", img: "video/moke kepala.png" },
+            { id: 2, name: "Moke Merah", price: 35000, category: "Minuman", img: "video/moke putih.png" },
+            { id: 3, name: "Moke Putih", price: 35000, category: "Minuman", img: "video/moke merah.png" },
+        ];
+
+        let cart = [];
+
+        // 1. Me-render / menampilkan produk ke halaman web
+        function displayProducts() {
+            const container = document.getElementById('product-container');
+            container.innerHTML = products.map(product => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
+                    <img src="${product.img}" alt="${product.name}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <span class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded font-medium">${product.category}</span>
+                        <h4 class="font-bold text-gray-900 mt-2 truncate">${product.name}</h4>
+                        <p class="text-amber-600 font-extrabold mt-1">Rp ${product.price.toLocaleString('id-ID')}</p>
+                        <button onclick="addToCart(${product.id})" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-lg transition cursor-pointer">
+                            <i class="fas fa-plus mr-1"></i> Tambah
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 2. Fungsi Buka/Tutup Sidebar Keranjang
+        function toggleCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            sidebar.classList.toggle('translate-x-full');
+        }
+
+        // 3. Fungsi Tambah Barang ke Keranjang
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const exist = cart.find(item => item.id === id);
+
+            if (exist) {
+                exist.quantity += 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            updateCartUI();
+        }
+
+        // 4. Mengubah Jumlah Item di Keranjang
+        function changeQuantity(id, amount) {
+            const item = cart.find(item => item.id === id);
+            if (!item) return;
+
+            item.quantity += amount;
+            if (item.quantity <= 0) {
+                cart = cart.filter(item => item.id !== id);
+            }
+            updateCartUI();
+        }
+
+        // 5. Update Tampilan Keranjang (Total harga & Jumlah ikon)
+        function updateCartUI() {
+            const cartCount = document.getElementById('cart-count');
+            const cartItemsContainer = document.getElementById('cart-items');
+            const cartTotal = document.getElementById('cart-total');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+
+            // Total Jumlah Item
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            cartCount.innerText = totalItems;
+
+            // Total Harga
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            cartTotal.innerText = `Rp ${totalPrice.toLocaleString('id-ID')}`;
+
+            if (cart.length === 0) {
+                emptyMsg.style.display = 'block';
+                // Hapus item lama jika ada
+                const elements = cartItemsContainer.querySelectorAll('.cart-item');
+                elements.forEach(el => el.remove());
+                return;
+            }
+
+            emptyMsg.style.style = 'none';
+            emptyMsg.style.display = 'none';
+
+            // Render isi item di dalam keranjang
+            const itemsHTML = cart.map(item => `
+                <div class="cart-item flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100">
+                    <div class="flex-1 min-w-0 pr-2">
+                        <h5 class="text-sm font-semibold text-gray-900 truncate">${item.name}</h5>
+                        <p class="text-xs text-gray-500">Rp ${item.price.toLocaleString('id-ID')} x ${item.quantity}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="changeQuantity(${item.id}, -1)" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-sm font-bold hover:bg-gray-300">-</button>
+                        <span class="text-sm font-bold w-4 text-center">${item.quantity}</span>
+                        <button onclick="changeQuantity(${item.id}, 1)" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-sm font-bold hover:bg-gray-300">+</button>
+                    </div>
+                </div>
+            `).join('');
+
+            cartItemsContainer.innerHTML = emptyMsg.outerHTML + itemsHTML;
+        }
+
+        // 6. INTEGRASI WHATSAPP FORM CHECKOUT
+        function checkoutWhatsApp() {
+            if (cart.length === 0) {
+                alert("Keranjang belanja Anda masih kosong!");
+                return;
+            }
+
+            // Menyusun format teks pesan WhatsApp
+            let pesan = `*Halo Te'o Pung Moke, Saya ingin memesan:* \n\n`;
+            
+            cart.forEach((item, index) => {
+                let subtotal = item.price * item.quantity;
+                pesan += `${index + 1}. *${item.name}* \n`;
+                pesan += `   Jumlah: ${item.quantity} x Rp ${item.price.toLocaleString('id-ID')}\n`;
+                pesan += `   Subtotal: Rp ${subtotal.toLocaleString('id-ID')}\n\n`;
+            });
+
+            const totalSemua = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            pesan += `*Total Keseluruhan:* Rp ${totalSemua.toLocaleString('id-ID')}\n\n`;
+            pesan += `Mohon info untuk ketersediaan stok dan total ongkos kirimnya. Terima kasih.`;
+
+            // Encode string teks agar aman dibaca oleh URL browser
+            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${NOMOR_WHATSAPP}&text=${encodeURIComponent(pesan)}`;
+            
+            // Buka aplikasi WhatsApp di tab baru
+            window.open(urlWhatsApp, '_blank');
+        }
+
+        // Jalankan fungsi tampilkan produk saat web pertama kali dimuat
+        window.onload = displayProducts;
+    </script>
+</body>
+</html>
